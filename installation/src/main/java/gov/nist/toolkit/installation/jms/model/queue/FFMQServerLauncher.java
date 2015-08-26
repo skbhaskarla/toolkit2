@@ -1,7 +1,6 @@
-package gov.nist.toolkit.installation.jms;
+package gov.nist.toolkit.installation.jms.model.queue;
 
 import net.timewalker.ffmq3.FFMQConstants;
-import net.timewalker.ffmq3.FFMQCoreSettings;
 import net.timewalker.ffmq3.listeners.ClientListener;
 import net.timewalker.ffmq3.listeners.tcp.io.TcpListener;
 import net.timewalker.ffmq3.local.FFMQEngine;
@@ -11,9 +10,18 @@ import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.OMNamespace;
 import org.apache.axiom.soap.SOAPFactory;
 
-import javax.jms.*;
+import javax.jms.ConnectionFactory;
+import javax.jms.DeliveryMode;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.MapMessage;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.Session;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -24,7 +32,7 @@ class MessageProducerThread implements Runnable
 
 	private static Logger log = Logger.getLogger(MessageProducerThread.class.getName()); 
 
-	private String queueName = "valQueue";
+	private String destinationName = "valQueue";
   
     /*
      * (non-Javadoc)
@@ -52,7 +60,7 @@ class MessageProducerThread implements Runnable
 	
 	        
             javax.jms.Queue queue = null;
-            queue = session.createQueue(queueName); 
+            queue = session.createQueue(destinationName);
 		    javax.jms.MessageProducer producer = session.createProducer(queue);
 
 
@@ -80,7 +88,7 @@ class MessageProducerThread implements Runnable
 
 			mapMessage.setJMSReplyTo(replyToDestination);
 		    
-            mapMessage.setJMSDeliveryMode(DeliveryMode.PERSISTENT);
+            mapMessage.setJMSDeliveryMode(DeliveryMode.NON_PERSISTENT);
 
 			log.info("sending...");
 
@@ -243,25 +251,25 @@ class FFMQServerLauncher implements Runnable
         
         // 1 - From a properties file
         Properties externalProperties = new Properties();
-//        try
-//        {
-//            FileInputStream in = new FileInputStream(getClass().getResource("ffmq-server.properties").getFile());
-//            externalProperties.load(in);
-//            in.close();
-//        }
-//        catch (Exception e)
-//        {
-//            throw new RuntimeException("Cannot load external properties",e);
-//        }
-//        Settings settings = new Settings(externalProperties);
+        try
+        {
+            FileInputStream in = new FileInputStream(getClass().getResource("/ffmq/conf/ffmq-server.properties").getFile());
+            externalProperties.load(in);
+            in.close();
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("Cannot load external properties",e);
+        }
+        Settings settings = new Settings(externalProperties);
         
         // 2 - Explicit Java code
-        Settings settings = new Settings();
-
-        settings.setStringProperty(FFMQCoreSettings.DESTINATION_DEFINITIONS_DIR, ".");
-        settings.setStringProperty(FFMQCoreSettings.BRIDGE_DEFINITIONS_DIR, ".");
-        settings.setStringProperty(FFMQCoreSettings.TEMPLATES_DIR, ".");
-        settings.setStringProperty(FFMQCoreSettings.DEFAULT_DATA_DIR, ".");
+//        Settings settings = new Settings();
+//
+//        settings.setStringProperty(FFMQCoreSettings.DESTINATION_DEFINITIONS_DIR, ".");
+//        settings.setStringProperty(FFMQCoreSettings.BRIDGE_DEFINITIONS_DIR, ".");
+//        settings.setStringProperty(FFMQCoreSettings.TEMPLATES_DIR, ".");
+//        settings.setStringProperty(FFMQCoreSettings.DEFAULT_DATA_DIR, ".");
 //        ...
         
         return settings;
@@ -273,7 +281,10 @@ class FFMQServerLauncher implements Runnable
      */
     public static void main(String[] args)
     {
-        System.setProperty("FFMQ_BASE", "..");
+        System.setProperty("FFMQ_BASE", new File(FFMQServerLauncher.class.getResource("/ffmq/conf/ffmq-server.properties").getFile()).getParentFile().getParent());
+
+       // System.out.println(System.getProperty("FFMQ_BASE"));
+
        try { 
 
 

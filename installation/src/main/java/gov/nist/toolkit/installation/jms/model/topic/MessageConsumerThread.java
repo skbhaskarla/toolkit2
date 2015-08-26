@@ -1,8 +1,16 @@
-package gov.nist.toolkit.installation.jms;
+package gov.nist.toolkit.installation.jms.model.topic;
 
 import net.timewalker.ffmq3.FFMQConstants;
 
-import javax.jms.*;
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.DeliveryMode;
+import javax.jms.Destination;
+import javax.jms.MapMessage;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import java.util.Hashtable;
@@ -12,9 +20,9 @@ import java.util.logging.Logger;
 class MessageConsumerThread implements Runnable 
 {
 
-	private static Logger log = Logger.getLogger(MessageConsumerThread.class.getName()); 
+	private static Logger log = Logger.getLogger(MessageConsumerThread.class.getName());
 
-	private String queueName = "valQueue";
+	private String destinationName = "valTopic";
   
     /*
      * (non-Javadoc)
@@ -24,9 +32,9 @@ class MessageConsumerThread implements Runnable
     {
 	        MessageConsumer consumer = null;
         //javax.jms.QueueSession session = null;
-        javax.jms.Session session = null;
+        Session session = null;
         //javax.jms.QueueConnection connection = null;
-		javax.jms.Connection connection = null;
+		Connection connection = null;
 
 
 		try {
@@ -37,28 +45,23 @@ class MessageConsumerThread implements Runnable
 
             // Lookup a connection factory in the context
             //javax.jms.QueueConnectionFactory factory = (QueueConnectionFactory) context.lookup(FFMQConstants.JNDI_QUEUE_CONNECTION_FACTORY_NAME);
-			javax.jms.ConnectionFactory factory = (ConnectionFactory) context.lookup(FFMQConstants.JNDI_CONNECTION_FACTORY_NAME);
+			ConnectionFactory factory = (ConnectionFactory) context.lookup(FFMQConstants.JNDI_CONNECTION_FACTORY_NAME);
 
-
-            //connection = factory.createQueueConnection();
 			connection = factory.createConnection();
 
-
-			session = connection.createSession(true, javax.jms.Session.SESSION_TRANSACTED);
-
-            /* session = connection.createQueueSession(false,
-                    javax.jms.Session.AUTO_ACKNOWLEDGE);
-			*/
+			session = connection.createSession(true, Session.SESSION_TRANSACTED);
 
             connection.start();
 
-            Destination source = session.createQueue(queueName);
+            Destination source = session.createTopic(destinationName);
 
             // Create a MessageConsumer from the Session to the Topic or Queue
             consumer = session.createConsumer(source);
 
+
+
             // Wait for a message
-            Message message = consumer.receive(1000*10);
+            Message message = consumer.receive(1000*60);
 
             if (message instanceof MapMessage) {
 
@@ -68,14 +71,14 @@ class MessageConsumerThread implements Runnable
 					log.info("**** success! ****");
 					log.info(data);
 				}
-	
+
 				Destination replyToDestination = message.getJMSReplyTo();
 
 				log.info("sending a response to: " + replyToDestination);
-	            javax.jms.MessageProducer producer = session.createProducer(replyToDestination);
+	            MessageProducer producer = session.createProducer(replyToDestination);
 
-            	javax.jms.MapMessage mapMsg = session.createMapMessage();
-            	mapMsg.setJMSDeliveryMode(DeliveryMode.PERSISTENT);
+            	MapMessage mapMsg = session.createMapMessage();
+            	mapMsg.setJMSDeliveryMode(DeliveryMode.NON_PERSISTENT);
             	mapMsg.setObject("status", "success!");
 				
 
@@ -85,7 +88,7 @@ class MessageConsumerThread implements Runnable
 
 			}
 			else {
-				log.warning(" receive failed - not a MapMessage ");
+				log.warning(" receive failed - not a MapMessage, or wait timed out");
 			}
 
 
@@ -119,7 +122,7 @@ class MessageConsumerThread implements Runnable
      */
     public static void main(String[] args)
     {
-        System.setProperty("FFMQ_BASE", "..");
+
        try { 
 
 
