@@ -1,4 +1,4 @@
-package gov.nist.toolkit.xdstools2.client.widgets.SiteSelectionWidget;
+package gov.nist.toolkit.xdstools2.client.widgets.SiteSelectionWidget_old;
 
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
